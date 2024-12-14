@@ -77,9 +77,10 @@ export default function MainSection() {
     return (
         <div className='main-wrapper'>
             <div className='messages-section' ref={msgSectionRef}>
+            <p style={{alignSelf:"center"}}>Type a message to start the conversation</p>
                 {messages.map((message, idx) => {
                     return <div key={idx} className='message' style={{ alignItems: message.botMsg === true ? 'start' : 'end' }}>
-
+                        
                         <div className='msg-upper' style={{ flexDirection: message.botMsg === true ? 'row' : 'row-reverse' }}>
 
                             <img src={message.botMsg === true ? bot : user} />
