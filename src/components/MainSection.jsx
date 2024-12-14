@@ -24,44 +24,62 @@ export default function MainSection() {
         localStorage.setItem('messages', JSON.stringify(messages));
     }, [messages]);
 
-    const sendMessage = (e) => {
+    const sendMessage = (e, isRetry = false) => {
         e.preventDefault();
-
-        //for empty message
-        if (currentMsg.trim() !== '') {
-            const randNum = Math.floor(Math.random() * 10);
+    
+        const messageToSend = isRetry ? 
+            messages.find(msg => msg.status === 'failed')?.content : 
+            currentMsg;
+    
+        if (messageToSend && messageToSend.trim() !== '') {
+            const randNum = isRetry ? 6 : Math.floor(Math.random() * 10);
             const currTime = formatTime(new Date());
-
-
-            //random scenario for message failure
-            if (randNum >= 7) {
-                setMessages((prevMsgs) => [
-                    ...prevMsgs,
-                    { botMsg: false, time: currTime, content: currentMsg, status: "failed" }
-                ]);
-            }
-
-
-            //sending message
-            else {
-                setMessages((prevMsgs) => [
-                    ...prevMsgs,
-                    { botMsg: false, time: currTime, content: currentMsg, status: "success" },
-                    { botMsg: true, time: currTime, content: '...', status: "success" }
-                ]);
-                setIsDisabled(true);
-                setCurrentMsg('');
-
-
-                //scroll to bottom
+    
+            const scrollToBottom = () => {
                 setTimeout(() => {
                     if (msgSectionRef.current) {
                         msgSectionRef.current.scrollTop = msgSectionRef.current.scrollHeight;
                     }
                 }, 0);
-
-
-                //reply as bot
+            };
+    
+            if (randNum >= 7) {
+                setMessages((prevMsgs) => 
+                    isRetry 
+                        ? prevMsgs.map(msg => 
+                            msg.status === 'failed' 
+                                ? { ...msg, time: currTime } 
+                                : msg
+                          )
+                        : [
+                            ...prevMsgs,
+                            { botMsg: false, time: currTime, content: messageToSend, status: "failed" }
+                          ]
+                );
+                
+                // Always scroll to bottom for failed messages
+                scrollToBottom();
+            }
+            else {
+                setMessages((prevMsgs) => 
+                    isRetry 
+                        ? prevMsgs.map(msg => 
+                            msg.status === 'failed' 
+                                ? { botMsg: false, time: currTime, content: messageToSend, status: "success" }
+                                : msg
+                          ).concat({ botMsg: true, time: currTime, content: '...', status: "success" })
+                        : [
+                            ...prevMsgs,
+                            { botMsg: false, time: currTime, content: messageToSend, status: "success" },
+                            { botMsg: true, time: currTime, content: '...', status: "success" }
+                          ]
+                );
+                setIsDisabled(true);
+                setCurrentMsg('');
+    
+                // Scroll to bottom for successful messages
+                scrollToBottom();
+    
                 setTimeout(() => {
                     const botReplyTime = formatTime(new Date());
                     setMessages((prevMsgs) => [
@@ -73,14 +91,15 @@ export default function MainSection() {
             }
         }
     };
+    
 
     return (
         <div className='main-wrapper'>
             <div className='messages-section' ref={msgSectionRef}>
-            <p style={{alignSelf:"center"}}>Type a message to start the conversation</p>
+                <p style={{ alignSelf: "center" }}>Type a message to start the conversation</p>
                 {messages.map((message, idx) => {
                     return <div key={idx} className='message' style={{ alignItems: message.botMsg === true ? 'start' : 'end' }}>
-                        
+
                         <div className='msg-upper' style={{ flexDirection: message.botMsg === true ? 'row' : 'row-reverse' }}>
 
                             <img src={message.botMsg === true ? bot : user} />
@@ -105,7 +124,7 @@ export default function MainSection() {
                                         <span>.</span>
                                         <span>.</span>
                                         <span>.</span>
-                                        
+
                                     </p>
                                 )
                                 : (
@@ -119,9 +138,15 @@ export default function MainSection() {
                                         {message.content}
                                     </p>
                                 )
-                            }                   
+                            }
 
-                            {message.botMsg === false && message.status === 'failed' && <img className='refresh-img' src={refresh} onClick={sendMessage} />}
+                            {message.status === 'failed' &&
+                                <img
+                                    className='refresh-img'
+                                    src={refresh}
+                                    onClick={(e) => sendMessage(e, true)}
+                                />
+                            }
                         </div>
                         {message.status === 'failed' && <p className='time' style={{ paddingLeft: message.botMsg === true ? "45px" : '0px', paddingRight: message.botMsg === true ? "0px" : '45px' }}>Failed to send message, click to retry</p>}
                         {message.status === 'success' && <p className='time' style={{ paddingLeft: message.botMsg === true ? "45px" : '0px', paddingRight: message.botMsg === true ? "0px" : '45px' }}>{message.time}</p>}
